@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField] private TileTypesScriptableObject tileTypes;
+    [SerializeField] private readonly TileDataScriptableObject tileTypes;
     public bool locked = false;
     private SpriteRenderer spriteRenderer;
 
@@ -20,8 +20,8 @@ public class Tile : MonoBehaviour
 
     }
 
-    public void SetTileType(TileType type)
+    public void SetTileType(TileData data)
     {
-        spriteRenderer.sprite = type.sprite;
+        spriteRenderer.sprite = data.sprite;
     }
 }

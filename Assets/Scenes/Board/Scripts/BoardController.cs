@@ -13,14 +13,13 @@ public class BoardController : MonoBehaviour
     private const float EXTENDED_TIME_BUFFER = 7f;
     private const float FALL_DELAY = 0.5f;
     private const float SPAWN_DELAY = 0.25f;
-    [SerializeField] private TileTypesScriptableObject tileTypes;
+    [SerializeField] private TileDataScriptableObject tileTypes;
     [SerializeField] private GameObject tilePrefab;
-    private Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
-    private string[] bag = new string[7] { "S", "Z", "L", "J", "I", "O", "T" };
-    private List<string> currentBag;
+    private readonly Bag bag = new();
+    private readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     private Vector2Int currentPiecePosition;
-    private State[,] currentPieceStructure;
-    private TileType currentType;
+    private Vector2Int[] currentPieceStructure;
+    private TileData currentType;
     private int lowestY;
     private int prevY;
     private float timeBuffer = 0;
@@ -47,7 +46,6 @@ public class BoardController : MonoBehaviour
             }
         }
 
-        currentBag = new(bag);
         StartCoroutine(BoardCoroutine());
     }
 
@@ -120,13 +118,16 @@ public class BoardController : MonoBehaviour
 
     private void SpawnPiece()
     {
-        string piece = GetNextPiece();
-        State[,] pieceStructure = GetPiece(piece);
-        Vector2Int pieceStart = GetPieceStart(piece);
-        TileType tileType = tileTypes.GetTileType(piece);
+        Piece piece = bag.GetNext();
+
+        Vector2Int pieceStart = PieceStructures.pieceStructures[piece].start;
+        Vector2Int[] pieceStructure = PieceStructures.pieceStructures[piece].structure;
+        TileData tileType = tileTypes.GetTileType(piece);
+
         currentPiecePosition = new(pieceStart.x, pieceStart.y);
-        currentPieceStructure = pieceStructure.Clone() as State[,];
+        currentPieceStructure = pieceStructure.Clone() as Vector2Int[];
         currentType = tileType;
+
         lowestY = currentPiecePosition.y;
         prevY = currentPiecePosition.y;
         activePiece = true;
@@ -136,23 +137,17 @@ public class BoardController : MonoBehaviour
 
     private void ClearCurrentPiece()
     {
-        ForEveryTileRelativeToBoard((i, j) =>
+        ForEveryCurrentTile((x, y) =>
         {
-            if (!tiles[i, j].locked)
-            {
-                tiles[i, j].SetTileType(tileTypes.Empty);
-            }
+            tiles[x, y].SetTileType(tileTypes.Empty);
         });
     }
 
     private void DrawCurrentPiece()
     {
-        ForEveryTileRelativeToBoard((i, j) =>
+        ForEveryCurrentTile((x, y) =>
         {
-            if (!tiles[i, j].locked && currentPieceStructure[i - currentPiecePosition.x, j - currentPiecePosition.y] != State.N)
-            {
-                tiles[i, j].SetTileType(currentType);
-            }
+            tiles[x, y].SetTileType(currentType);
         });
     }
 
@@ -180,30 +175,28 @@ public class BoardController : MonoBehaviour
     private bool CanMove(int direction)
     {
         bool canMove = true;
-        ForEveryTileRelativeToStructure((i, j) =>
+        ForEveryCurrentTile((x, y) =>
         {
-            if (currentPieceStructure[i, j] != State.N)
+            x += direction;
+            if (x < 0 || x >= BOARD_WIDTH || tiles[x, y].locked)
             {
-                if (currentPiecePosition.x + i + direction < 0 ||
-                currentPiecePosition.x + i + direction >= BOARD_WIDTH ||
-                tiles[currentPiecePosition.x + i + direction, currentPiecePosition.y + j].locked)
-                    canMove = false;
+                canMove = false;
             }
         });
+
         return canMove;
     }
 
     private bool CanFall(int distance)
     {
         bool canFall = true;
-        ForEveryTileRelativeToStructure((i, j) =>
+
+        ForEveryCurrentTile((x, y) =>
         {
-            if (currentPieceStructure[i, j] != State.N)
+            y -= distance;
+            if (y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].locked)
             {
-                if (currentPiecePosition.y + j - distance < 0 ||
-                currentPiecePosition.y + j - distance >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER ||
-                tiles[currentPiecePosition.x + i, currentPiecePosition.y + j - distance].locked)
-                    canFall = false;
+                canFall = false;
             }
         });
 
@@ -222,13 +215,12 @@ public class BoardController : MonoBehaviour
         currentPiecePosition.y -= distance - 1;
         DrawCurrentPiece();
 
-        ForEveryTileRelativeToBoard((i, j) =>
+        foreach (Vector2Int tilePos in currentPieceStructure)
         {
-            if (currentPieceStructure[i - currentPiecePosition.x, j - currentPiecePosition.y] != State.N)
-            {
-                tiles[i, j].locked = true;
-            }
-        });
+            int x = currentPiecePosition.x + tilePos.x;
+            int y = currentPiecePosition.y + tilePos.y;
+            tiles[x, y].locked = true;
+        }
 
         timeBuffer = 0;
         extendedTimeBuffer = 0;
@@ -260,43 +252,13 @@ public class BoardController : MonoBehaviour
         return false;
     }
 
-    private string GetNextPiece()
+    private void ForEveryCurrentTile(System.Action<int, int> action)
     {
-        if (currentBag.Count == 0)
+        foreach (Vector2Int tilePos in currentPieceStructure)
         {
-            currentBag = new(bag);
-        }
-        int idx = Random.Range(0, currentBag.Count);
-        string piece = currentBag[idx];
-        currentBag.RemoveAt(idx);
-        return piece;
-    }
-
-    private void ForEveryTileRelativeToBoard(System.Action<int, int> action)
-    {
-        for (int i = currentPiecePosition.x; i < currentPiecePosition.x + currentPieceStructure.GetLength(0); i++)
-        {
-            for (int j = currentPiecePosition.y; j < currentPiecePosition.y + currentPieceStructure.GetLength(1); j++)
-            {
-                if (i >= 0 && i < BOARD_WIDTH && j >= 0 && j < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER)
-                {
-                    action(i, j);
-                }
-            }
-        }
-    }
-
-    private void ForEveryTileRelativeToStructure(System.Action<int, int> action)
-    {
-        for (int i = 0; i < currentPieceStructure.GetLength(0); i++)
-        {
-            for (int j = 0; j < currentPieceStructure.GetLength(1); j++)
-            {
-                if (currentPiecePosition.x + i >= 0 && currentPiecePosition.x + i < BOARD_WIDTH && currentPiecePosition.y + j >= 0 && currentPiecePosition.y + j < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER)
-                {
-                    action(i, j);
-                }
-            }
+            int x = currentPiecePosition.x + tilePos.x;
+            int y = currentPiecePosition.y + tilePos.y;
+            action(x, y);
         }
     }
 }
