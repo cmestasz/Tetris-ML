@@ -19,6 +19,9 @@ public class BoardController : MonoBehaviour
     private readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     private Vector2Int currentPiecePosition;
     private Vector2Int[] currentPieceStructure;
+    private Vector2Int[][] currentPieceOffsets;
+    private int currentPieceRotation;
+    private int currentPieceSize;
     private TileData currentType;
     private int lowestY;
     private int prevY;
@@ -84,27 +87,43 @@ public class BoardController : MonoBehaviour
         LockCurrentPiece();
     }
 
+    // TODO: input manager
     private void HandleInput()
     {
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             MoveCurrentPiece(-1);
+            timeBuffer = 0;
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             MoveCurrentPiece(1);
+            timeBuffer = 0;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            //RotateCurrentPiece();
+            RotateCurrentPiece(1);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            RotateCurrentPiece(2);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            RotateCurrentPiece(3);
+            timeBuffer = 0;
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
             FallCurrentPiece();
+            timeBuffer = 0;
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
             activePiece = false;
+            timeBuffer = 0;
         }
     }
 
@@ -120,13 +139,13 @@ public class BoardController : MonoBehaviour
     {
         Piece piece = bag.GetNext();
 
-        Vector2Int pieceStart = PieceStructures.pieceStructures[piece].start;
-        Vector2Int[] pieceStructure = PieceStructures.pieceStructures[piece].structure;
-        TileData tileType = tileTypes.GetTileType(piece);
-
-        currentPiecePosition = new(pieceStart.x, pieceStart.y);
-        currentPieceStructure = pieceStructure.Clone() as Vector2Int[];
-        currentType = tileType;
+        PieceStructure pieceStructure = PieceStructures.pieceStructures[piece];
+        currentPiecePosition = new(pieceStructure.start.x, pieceStructure.start.y);
+        currentPieceStructure = pieceStructure.structure.Clone() as Vector2Int[];
+        currentPieceOffsets = pieceStructure.offsets;
+        currentPieceRotation = 0;
+        currentType = tileTypes.GetTileType(piece);
+        currentPieceSize = pieceStructure.size;
 
         lowestY = currentPiecePosition.y;
         prevY = currentPiecePosition.y;
@@ -172,6 +191,56 @@ public class BoardController : MonoBehaviour
         }
     }
 
+    private void RotateCurrentPiece(int times)
+    {
+        Vector2Int[] newStructure = PieceStructures.RotateStructure(currentPieceStructure, currentPieceSize, times);
+        ClearCurrentPiece();
+        if (KickCurrentPiece(newStructure, times))
+        {
+            currentPieceStructure = newStructure;
+        }
+        DrawCurrentPiece();
+    }
+
+    private bool KickCurrentPiece(Vector2Int[] structure, int times)
+    {
+        int newRotation = (currentPieceRotation + times) % 4;
+        int kickIdx = -1;
+        Vector2Int currentKick;
+        bool wasKick = false;
+        do
+        {
+            kickIdx++;
+            currentKick = currentPieceOffsets[currentPieceRotation][kickIdx] - currentPieceOffsets[newRotation][kickIdx];
+            if (CanKick(structure, currentKick))
+            {
+                currentPiecePosition += currentKick;
+                wasKick = true;
+                break;
+            }
+        } while (kickIdx < currentPieceOffsets[newRotation].Length - 1);
+
+        currentPieceRotation = newRotation;
+        return wasKick;
+    }
+
+    private bool CanKick(Vector2Int[] structure, Vector2Int kick)
+    {
+        bool canKick = true;
+        ForEveryTileInStructure((x, y) =>
+        {
+            x += kick.x;
+            y += kick.y;
+            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].locked)
+            {
+                canKick = false;
+                return;
+            }
+        }, structure);
+
+        return canKick;
+    }
+
     private bool CanMove(int direction)
     {
         bool canMove = true;
@@ -181,6 +250,7 @@ public class BoardController : MonoBehaviour
             if (x < 0 || x >= BOARD_WIDTH || tiles[x, y].locked)
             {
                 canMove = false;
+                return;
             }
         });
 
@@ -197,6 +267,7 @@ public class BoardController : MonoBehaviour
             if (y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].locked)
             {
                 canFall = false;
+                return;
             }
         });
 
@@ -228,19 +299,15 @@ public class BoardController : MonoBehaviour
 
     private bool ForceLock()
     {
-        // innerly if y doesnt change in time_buffer seconds, land it
+        // time_buffer resets with user input
         // store the lowest y, if it doesnt change in extended_time_buffer seconds land it
         // if lowest y changes, reset the timer
-        // if it lands, lock the tiles
 
-        if (currentPiecePosition.y != prevY)
+
+        if (currentPiecePosition.y < lowestY)
         {
-            timeBuffer = 0;
-            if (currentPiecePosition.y < lowestY)
-            {
-                lowestY = currentPiecePosition.y;
-                extendedTimeBuffer = 0;
-            }
+            lowestY = currentPiecePosition.y;
+            extendedTimeBuffer = 0;
         }
         prevY = currentPiecePosition.y;
 
@@ -254,7 +321,12 @@ public class BoardController : MonoBehaviour
 
     private void ForEveryCurrentTile(System.Action<int, int> action)
     {
-        foreach (Vector2Int tilePos in currentPieceStructure)
+        ForEveryTileInStructure(action, currentPieceStructure);
+    }
+
+    private void ForEveryTileInStructure(System.Action<int, int> action, Vector2Int[] structure)
+    {
+        foreach (Vector2Int tilePos in structure)
         {
             int x = currentPiecePosition.x + tilePos.x;
             int y = currentPiecePosition.y + tilePos.y;
