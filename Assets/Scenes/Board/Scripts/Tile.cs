@@ -4,10 +4,12 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField] private readonly TileDataScriptableObject tileTypes;
+    public enum TileType { Active, Ghost, Locked, Empty }
+    private TileType type = TileType.Empty;
+    [SerializeField] private TileDataScriptableObject tileTypes;
     public TileData tileData;
-    public bool locked = false;
     private SpriteRenderer spriteRenderer;
+    private Color ghostColor = new(1, 1, 1, 0.5f);
 
     // Start is called before the first frame update
     void Start()
@@ -21,9 +23,30 @@ public class Tile : MonoBehaviour
 
     }
 
-    public void SetTileType(TileData data)
+    public void SetTileData(TileData data)
     {
         spriteRenderer.sprite = data.sprite;
         tileData = data;
+    }
+
+    public void SetTileType(TileType type)
+    {
+        this.type = type;
+        switch (type)
+        {
+            case TileType.Active:
+            case TileType.Empty:
+            case TileType.Locked:
+                spriteRenderer.color = Color.white;
+                break;
+            case TileType.Ghost:
+                spriteRenderer.color = ghostColor;
+                break;
+        }
+    }
+
+    public TileType GetTileType()
+    {
+        return type;
     }
 }

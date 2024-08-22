@@ -24,9 +24,9 @@ public static class PieceStructures
     private static readonly Vector2Int[][] offsetO = new Vector2Int[][]
     {
         new Vector2Int[] { new(0, 0) },
-        new Vector2Int[] { new(0, 1) },
-        new Vector2Int[] { new(1, 1) },
-        new Vector2Int[] { new(1, 0) }
+        new Vector2Int[] { new(0, -1) },
+        new Vector2Int[] { new(-1, -1) },
+        new Vector2Int[] { new(-1, 0) }
     };
 
     private static readonly PieceStructure I = new()

@@ -1,7 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 
 // just because queue.peekat is not a thing
-public class PeekableQueue<T>
+public class PeekableQueue<T> : IEnumerable<T>
 {
     private T[] queue;
     private int start;
@@ -71,5 +72,18 @@ public class PeekableQueue<T>
     public bool IsEmpty()
     {
         return count == 0;
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        for (int i = 0; i < count; i++)
+        {
+            yield return queue[(start + i) % queue.Length];
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }
