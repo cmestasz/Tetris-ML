@@ -5,6 +5,7 @@ using UnityEngine;
 public class Tile : MonoBehaviour
 {
     [SerializeField] private readonly TileDataScriptableObject tileTypes;
+    public TileData tileData;
     public bool locked = false;
     private SpriteRenderer spriteRenderer;
 
@@ -23,5 +24,6 @@ public class Tile : MonoBehaviour
     public void SetTileType(TileData data)
     {
         spriteRenderer.sprite = data.sprite;
+        tileData = data;
     }
 }

@@ -12,23 +12,28 @@ public class BoardController : MonoBehaviour
     private const float TIME_BUFFER = 1f;
     private const float EXTENDED_TIME_BUFFER = 7f;
     private const float FALL_DELAY = 0.5f;
-    private const float SPAWN_DELAY = 0.25f;
+    private const float SPAWN_DELAY = 0.1f;
     [SerializeField] private TileDataScriptableObject tileTypes;
     [SerializeField] private GameObject tilePrefab;
-    private readonly Bag bag = new();
+    private Bag bag = new();
     private readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     private Vector2Int currentPiecePosition;
     private Vector2Int[] currentPieceStructure;
     private Vector2Int[][] currentPieceOffsets;
     private int currentPieceRotation;
     private int currentPieceSize;
-    private TileData currentType;
+    private Piece currentPiece;
+    private TileData currentData;
     private int lowestY;
-    private int prevY;
     private float timeBuffer = 0;
     private float extendedTimeBuffer = 0;
     private float fallDelay = 0;
     private bool activePiece = false;
+    private bool inputLock = false;
+    private bool holdUsed = false;
+    private bool canHold = true;
+    private bool canInput = true;
+    private Piece heldPiece = Piece.None;
 
     // Start is called before the first frame update
     void Start()
@@ -49,7 +54,7 @@ public class BoardController : MonoBehaviour
             }
         }
 
-        StartCoroutine(BoardCoroutine());
+        StartCoroutine(GameLoop());
     }
 
     // Update is called once per frame
@@ -59,14 +64,18 @@ public class BoardController : MonoBehaviour
         HandleInput();
     }
 
-    private IEnumerator BoardCoroutine()
+    private IEnumerator GameLoop()
     {
         yield return new WaitForSeconds(SPAWN_DELAY);
         while (true)
         {
-            SpawnPiece();
+            canInput = true;
+            SpawnPiece(holdUsed);
             StartCoroutine(FallCoroutine());
-            yield return LockCoroutine();
+            yield return WaitUntilLockOrHold();
+            if (!holdUsed)
+                LockCurrentPiece();
+            canInput = false;
             yield return new WaitForSeconds(SPAWN_DELAY);
         }
     }
@@ -81,52 +90,10 @@ public class BoardController : MonoBehaviour
         }
     }
 
-    private IEnumerator LockCoroutine()
+    private IEnumerator WaitUntilLockOrHold()
     {
-        yield return new WaitUntil(() => !activePiece || ForceLock());
-        LockCurrentPiece();
+        yield return new WaitUntil(() => CanLockCurrentPiece() || holdUsed);
     }
-
-    // TODO: input manager
-    private void HandleInput()
-    {
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            MoveCurrentPiece(-1);
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            MoveCurrentPiece(1);
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            RotateCurrentPiece(1);
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            RotateCurrentPiece(2);
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.Z))
-        {
-            RotateCurrentPiece(3);
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            FallCurrentPiece();
-            timeBuffer = 0;
-        }
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            activePiece = false;
-            timeBuffer = 0;
-        }
-    }
-
 
     private void UpdateTimers()
     {
@@ -135,24 +102,47 @@ public class BoardController : MonoBehaviour
         fallDelay += Time.deltaTime;
     }
 
-    private void SpawnPiece()
+    private void SpawnPiece(bool useCurrent)
     {
-        Piece piece = bag.GetNext();
+        Piece piece = useCurrent ? currentPiece : bag.GetNext();
+        holdUsed = false;
 
         PieceStructure pieceStructure = PieceStructures.pieceStructures[piece];
         currentPiecePosition = new(pieceStructure.start.x, pieceStructure.start.y);
         currentPieceStructure = pieceStructure.structure.Clone() as Vector2Int[];
         currentPieceOffsets = pieceStructure.offsets;
         currentPieceRotation = 0;
-        currentType = tileTypes.GetTileType(piece);
+        currentData = tileTypes.GetTileType(piece);
+        currentPiece = piece;
         currentPieceSize = pieceStructure.size;
-
         lowestY = currentPiecePosition.y;
-        prevY = currentPiecePosition.y;
         activePiece = true;
 
+        CheckForGameOver();
+
         DrawCurrentPiece();
+
+        string queue = "Next: ";
+        for (int i = 0; i < 4; i++)
+        {
+            queue += bag.PeekAt(i) + " ";
+        }
+        Debug.Log(queue);
     }
+
+    private void CheckForGameOver()
+    {
+        ForEveryCurrentTile((x, y) =>
+        {
+            if (tiles[x, y].locked)
+            {
+                Debug.Log("Game Over");
+                RestartBoard();
+                return;
+            }
+        });
+    }
+
 
     private void ClearCurrentPiece()
     {
@@ -166,18 +156,58 @@ public class BoardController : MonoBehaviour
     {
         ForEveryCurrentTile((x, y) =>
         {
-            tiles[x, y].SetTileType(currentType);
+            tiles[x, y].SetTileType(currentData);
         });
     }
 
-    private void FallCurrentPiece()
+    private void RestartBoard()
+    {
+        for (int i = 0; i < BOARD_WIDTH; i++)
+        {
+            for (int j = 0; j < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER; j++)
+            {
+                tiles[i, j].SetTileType(tileTypes.Empty);
+                tiles[i, j].locked = false;
+            }
+        }
+        bag = new Bag();
+        heldPiece = Piece.None;
+        StopAllCoroutines();
+        StartCoroutine(GameLoop());
+    }
+
+    private void HoldCurrentPiece()
+    {
+        if (!canHold)
+        {
+            return;
+        }
+        if (heldPiece == Piece.None)
+        {
+            heldPiece = currentPiece;
+            currentPiece = bag.GetNext();
+        }
+        else
+        {
+            (currentPiece, heldPiece) = (heldPiece, currentPiece);
+        }
+        activePiece = false;
+        ClearCurrentPiece();
+        holdUsed = true;
+        canHold = false;
+    }
+
+    private bool FallCurrentPiece()
     {
         if (CanFall(1))
         {
             ClearCurrentPiece();
             currentPiecePosition.y--;
+            timeBuffer = 0;
             DrawCurrentPiece();
+            return true;
         }
+        return false;
     }
 
     private void MoveCurrentPiece(int direction)
@@ -274,7 +304,7 @@ public class BoardController : MonoBehaviour
         return canFall;
     }
 
-    private void LockCurrentPiece()
+    private void MaxFallCurrentPiece()
     {
         int distance = 1;
         while (CanFall(distance))
@@ -285,6 +315,11 @@ public class BoardController : MonoBehaviour
         ClearCurrentPiece();
         currentPiecePosition.y -= distance - 1;
         DrawCurrentPiece();
+    }
+
+    private void LockCurrentPiece()
+    {
+        MaxFallCurrentPiece();
 
         foreach (Vector2Int tilePos in currentPieceStructure)
         {
@@ -295,25 +330,91 @@ public class BoardController : MonoBehaviour
 
         timeBuffer = 0;
         extendedTimeBuffer = 0;
+        canHold = true;
+        activePiece = false;
+        canInput = false;
+
+        CheckForClears();
+        CheckForPC();
     }
 
-    private bool ForceLock()
+    private void CheckForPC()
     {
-        // time_buffer resets with user input
+        bool pc = true;
+        for (int x = 0; x < BOARD_WIDTH; x++)
+        {
+            if (tiles[x, 0].locked)
+            {
+                pc = false;
+                break;
+            }
+        }
+        if (pc)
+        {
+            Debug.Log("PC");
+        }
+    }
+
+    private void CheckForClears()
+    {
+        List<int> toClear = new();
+        for (int y = currentPiecePosition.y; y < currentPiecePosition.y + currentPieceSize; y++)
+        {
+            if (y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER)
+            {
+                continue;
+            }
+            bool clear = true;
+            for (int x = 0; x < BOARD_WIDTH; x++)
+            {
+                if (!tiles[x, y].locked)
+                {
+                    clear = false;
+                    break;
+                }
+            }
+            if (clear)
+            {
+                toClear.Add(y);
+            }
+        }
+        ClearLines(toClear);
+    }
+
+    private void ClearLines(List<int> toClear)
+    {
+        for (int i = 0; i < toClear.Count; i++)
+        {
+            for (int x = 0; x < BOARD_WIDTH; x++)
+            {
+                tiles[x, toClear[i] - i].SetTileType(tileTypes.Empty);
+                tiles[x, toClear[i] - i].locked = false;
+            }
+            for (int y = toClear[i] - i; y < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER - 1; y++)
+            {
+                for (int x = 0; x < BOARD_WIDTH; x++)
+                {
+                    tiles[x, y].SetTileType(tiles[x, y + 1].tileData);
+                    tiles[x, y].locked = tiles[x, y + 1].locked;
+                }
+            }
+        }
+    }
+
+    private bool CanLockCurrentPiece()
+    {
+        // time_buffer resets with user input or falling
         // store the lowest y, if it doesnt change in extended_time_buffer seconds land it
         // if lowest y changes, reset the timer
-
-
         if (currentPiecePosition.y < lowestY)
         {
             lowestY = currentPiecePosition.y;
             extendedTimeBuffer = 0;
         }
-        prevY = currentPiecePosition.y;
-
-        if (timeBuffer >= TIME_BUFFER || extendedTimeBuffer >= EXTENDED_TIME_BUFFER)
+        if (timeBuffer >= TIME_BUFFER || extendedTimeBuffer >= EXTENDED_TIME_BUFFER || inputLock)
         {
             activePiece = false;
+            inputLock = false;
             return true;
         }
         return false;
@@ -331,6 +432,60 @@ public class BoardController : MonoBehaviour
             int x = currentPiecePosition.x + tilePos.x;
             int y = currentPiecePosition.y + tilePos.y;
             action(x, y);
+        }
+    }
+
+    // TODO: input manager
+    private void HandleInput()
+    {
+        if (!canInput)
+        {
+            return;
+        }
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            MoveCurrentPiece(-1);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            MoveCurrentPiece(1);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            RotateCurrentPiece(1);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            RotateCurrentPiece(2);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            RotateCurrentPiece(3);
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            MaxFallCurrentPiece();
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            inputLock = true;
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            HoldCurrentPiece();
+            timeBuffer = 0;
+        }
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            RestartBoard();
+            timeBuffer = 0;
         }
     }
 }

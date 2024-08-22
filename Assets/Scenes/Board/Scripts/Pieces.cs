@@ -1,4 +1,4 @@
 public static class Pieces
 {
-    public enum Piece { I, J, L, O, S, T, Z }
+    public enum Piece { I, J, L, O, S, T, Z, None }
 }
