@@ -7,18 +7,19 @@ using static BoardConstants;
 
 public class BoardController : MonoBehaviour
 {
-    [SerializeField] private TileDataScriptableObject tileDataSO;
+    public TileDataScriptableObject tileDataSO;
     [SerializeField] private GameObject tilePrefab;
-    [SerializeField] private InfoController previewController;
+    public InfoController infoController;
+    private ClearsController clearsController;
     private Bag bag = new();
-    private readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
+    public readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     private Vector2Int currentGhostPosition;
     private Vector2Int[] currentGhostStructure;
-    private Vector2Int currentPiecePosition;
-    private Vector2Int[] currentPieceStructure;
+    public Vector2Int currentPiecePosition;
+    public Vector2Int[] currentPieceStructure;
     private Vector2Int[][] currentPieceOffsets;
     private int currentPieceRotation;
-    private int currentPieceSize;
+    public int currentPieceSize;
     private Piece currentPiece;
     private TileData currentData;
     private int lowestY;
@@ -30,11 +31,13 @@ public class BoardController : MonoBehaviour
     private bool inputLock = false;
     private bool holdUsed = false;
     private bool canHold = true;
+    private bool playing = false;
     private Piece heldPiece = Piece.None;
 
     // Start is called before the first frame update
     void Start()
     {
+        clearsController = new ClearsController(this);
         tilePrefab.transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
         transform.Find("Background").transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
 
@@ -56,7 +59,7 @@ public class BoardController : MonoBehaviour
         {
             initialPreviews[i] = bag.PeekAt(i);
         }
-        previewController.InitInfo(initialPreviews);
+        infoController.InitInfo(initialPreviews);
 
         StartCoroutine(GameLoop());
     }
@@ -71,13 +74,16 @@ public class BoardController : MonoBehaviour
     private IEnumerator GameLoop()
     {
         yield return new WaitForSeconds(START_TIME);
+        playing = true;
         while (true)
         {
             SpawnPiece(holdUsed);
             if (CheckForGameOver())
             {
                 RestartBoard();
+                playing = false;
                 yield return new WaitForSeconds(START_TIME);
+                playing = true;
             }
             else
             {
@@ -107,15 +113,28 @@ public class BoardController : MonoBehaviour
 
     private void UpdateTimers()
     {
-        timeBuffer += Time.deltaTime;
-        extendedTimeBuffer += Time.deltaTime;
-        fallDelay += Time.deltaTime;
-        autoShiftTimer += Time.deltaTime;
+        if (playing)
+        {
+            timeBuffer += Time.deltaTime;
+            extendedTimeBuffer += Time.deltaTime;
+            fallDelay += Time.deltaTime;
+            autoShiftTimer += Time.deltaTime;
+        }
     }
 
     private void SpawnPiece(bool useCurrent)
     {
-        Piece piece = useCurrent ? currentPiece : bag.GetNext();
+        Piece piece;
+        if (useCurrent)
+        {
+            piece = currentPiece;
+        }
+        else
+        {
+            piece = bag.GetNext();
+            infoController.UpdatePreview(bag.PeekAt(PREVIEWS - 1));
+        }
+
         holdUsed = false;
 
         PieceStructure pieceStructure = PieceStructures.pieceStructures[piece];
@@ -171,14 +190,6 @@ public class BoardController : MonoBehaviour
 
     private void RestartBoard()
     {
-        for (int i = 0; i < BOARD_WIDTH; i++)
-        {
-            for (int j = 0; j < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER; j++)
-            {
-                tiles[i, j].SetTileData(tileDataSO.Empty);
-                tiles[i, j].SetTileType(TileType.Empty);
-            }
-        }
         bag = new Bag();
         heldPiece = Piece.None;
         activePiece = false;
@@ -188,7 +199,25 @@ public class BoardController : MonoBehaviour
         {
             initialPreviews[i] = bag.PeekAt(i);
         }
-        previewController.RestartInfo(initialPreviews);
+        infoController.RestartInfo(initialPreviews);
+        RestartTimers();
+
+        for (int i = 0; i < BOARD_WIDTH; i++)
+        {
+            for (int j = 0; j < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER; j++)
+            {
+                tiles[i, j].SetTileData(tileDataSO.Empty);
+                tiles[i, j].SetTileType(TileType.Empty);
+            }
+        }
+    }
+
+    private void RestartTimers()
+    {
+        timeBuffer = 0;
+        extendedTimeBuffer = 0;
+        autoShiftTimer = 0;
+        fallDelay = 0;
     }
 
     private void HoldCurrentPiece()
@@ -201,12 +230,12 @@ public class BoardController : MonoBehaviour
         {
             heldPiece = currentPiece;
             currentPiece = bag.GetNext();
-            previewController.FirstHoldPiece(heldPiece, bag.PeekAt(PREVIEWS - 1));
+            infoController.FirstHoldPiece(heldPiece, bag.PeekAt(PREVIEWS - 1));
         }
         else
         {
             (currentPiece, heldPiece) = (heldPiece, currentPiece);
-            previewController.HoldPiece(heldPiece);
+            infoController.HoldPiece(heldPiece);
         }
         activePiece = false;
         ClearCurrentPiece();
@@ -364,71 +393,7 @@ public class BoardController : MonoBehaviour
         canHold = true;
         activePiece = false;
 
-        CheckForClears();
-        CheckForPC();
-    }
-
-    private void CheckForPC()
-    {
-        bool pc = true;
-        for (int x = 0; x < BOARD_WIDTH; x++)
-        {
-            if (tiles[x, 0].GetTileType() == TileType.Locked)
-            {
-                pc = false;
-                break;
-            }
-        }
-        if (pc)
-        {
-            Debug.Log("PC");
-        }
-    }
-
-    private void CheckForClears()
-    {
-        List<int> toClear = new();
-        for (int y = currentPiecePosition.y; y < currentPiecePosition.y + currentPieceSize; y++)
-        {
-            if (y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER)
-            {
-                continue;
-            }
-            bool clear = true;
-            for (int x = 0; x < BOARD_WIDTH; x++)
-            {
-                if (tiles[x, y].GetTileType() != TileType.Locked)
-                {
-                    clear = false;
-                    break;
-                }
-            }
-            if (clear)
-            {
-                toClear.Add(y);
-            }
-        }
-        ClearLines(toClear);
-    }
-
-    private void ClearLines(List<int> toClear)
-    {
-        for (int i = 0; i < toClear.Count; i++)
-        {
-            for (int x = 0; x < BOARD_WIDTH; x++)
-            {
-                tiles[x, toClear[i] - i].SetTileData(tileDataSO.Empty);
-                tiles[x, toClear[i] - i].SetTileType(TileType.Empty);
-            }
-            for (int y = toClear[i] - i; y < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER - 1; y++)
-            {
-                for (int x = 0; x < BOARD_WIDTH; x++)
-                {
-                    tiles[x, y].SetTileData(tiles[x, y + 1].tileData);
-                    tiles[x, y].SetTileType(tiles[x, y + 1].GetTileType());
-                }
-            }
-        }
+        clearsController.CheckForClears();
     }
 
     private void UpdateGhost()

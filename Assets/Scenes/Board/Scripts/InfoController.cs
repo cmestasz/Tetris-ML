@@ -1,14 +1,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using static BoardConstants;
 using static Pieces;
 
+// anything that is purely visual and can be removed for training
 public class InfoController : MonoBehaviour
 {
     [SerializeField] private GameObject I, J, L, O, S, T, Z;
+    [SerializeField] private TMP_Text clearLines, clearModifier, clearB2B, clearCombo;
     private Transform holdParent;
+    private Transform queueParent;
     private Dictionary<Piece, GameObject> piecePrefabs;
     private const float SPACING = 3f;
     private readonly Queue<GameObject> previewPieces = new();
@@ -17,6 +21,7 @@ public class InfoController : MonoBehaviour
     public void InitInfo(Piece[] pieces)
     {
         holdParent = transform.Find("Hold");
+        queueParent = transform.Find("Queue");
         piecePrefabs = new()
         {
             { Piece.I, I },
@@ -50,9 +55,9 @@ public class InfoController : MonoBehaviour
     {
         for (int i = 0; i < pieces.Length; i++)
         {
-            float x = transform.position.x;
-            float y = transform.position.y - i * SPACING * BOARD_SCALE;
-            GameObject piece = Instantiate(piecePrefabs[pieces[i]], new(x, y, 0), Quaternion.identity, transform);
+            float x = queueParent.position.x;
+            float y = queueParent.position.y - i * SPACING * BOARD_SCALE;
+            GameObject piece = Instantiate(piecePrefabs[pieces[i]], new(x, y, 0), Quaternion.identity, queueParent);
             previewPieces.Enqueue(piece);
         }
     }
@@ -64,9 +69,9 @@ public class InfoController : MonoBehaviour
         {
             previewPiece.transform.position += up;
         }
-        float x = transform.position.x;
-        float y = transform.position.y - previewPieces.Count * SPACING * BOARD_SCALE;
-        GameObject newPiece = Instantiate(piecePrefabs[piece], new(x, y, 0), Quaternion.identity, transform);
+        float x = queueParent.position.x;
+        float y = queueParent.position.y - previewPieces.Count * SPACING * BOARD_SCALE;
+        GameObject newPiece = Instantiate(piecePrefabs[piece], new(x, y, 0), Quaternion.identity, queueParent);
         previewPieces.Enqueue(newPiece);
     }
 
@@ -80,5 +85,41 @@ public class InfoController : MonoBehaviour
     {
         Destroy(holdParent.GetChild(0).gameObject);
         Instantiate(piecePrefabs[piece], holdParent);
+    }
+
+    private string[] clears = { "Single", "Double", "Triple", "Quad" };
+
+    public void UpdateClears(int lines, string modifier, int b2b, int combo)
+    {
+        SetClearLinesText(lines);
+        SetClearModifierText(modifier);
+        SetClearB2BText(b2b);
+        SetClearComboText(combo);
+    }
+
+    public void SetClearLinesText(int lines)
+    {
+        if (lines == 0)
+        {
+            clearLines.text = "";
+            return;
+        }
+
+        clearLines.text = clears[lines - 1];
+    }
+
+    public void SetClearModifierText(string modifier)
+    {
+        clearModifier.text = modifier;
+    }
+
+    public void SetClearB2BText(int b2b)
+    {
+        clearB2B.text = b2b >= 3 ? $"B2B x {b2b}" : "";
+    }
+
+    public void SetClearComboText(int combo)
+    {
+        clearCombo.text = combo >= 2 ? $"Combo x {combo}" : "";
     }
 }
