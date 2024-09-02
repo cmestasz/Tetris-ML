@@ -20,7 +20,7 @@ public class BoardController : MonoBehaviour
     private Vector2Int[][] currentPieceOffsets;
     private int currentPieceRotation;
     public int currentPieceSize;
-    private Piece currentPiece;
+    public Piece currentPiece;
     private TileData currentData;
     private int lowestY;
     private float timeBuffer = 0;
@@ -247,7 +247,7 @@ public class BoardController : MonoBehaviour
 
     private bool FallCurrentPiece()
     {
-        if (CanFall(1))
+        if (CanCurrentFall(1))
         {
             ClearCurrentPiece();
             currentPiecePosition.y--;
@@ -260,7 +260,7 @@ public class BoardController : MonoBehaviour
 
     private void MoveCurrentPiece(int direction)
     {
-        if (CanMove(direction))
+        if (CanCurrentShift(direction))
         {
             ClearCurrentPiece();
             currentPiecePosition.x += direction;
@@ -318,27 +318,53 @@ public class BoardController : MonoBehaviour
         return canKick;
     }
 
-    private bool CanMove(int direction)
+    public bool CanShift(Vector2Int[] structure, Vector2Int position, int direction)
     {
         bool canMove = true;
-        ForEveryCurrentTile((x, y) =>
+        ForEveryTileInStructure((x, y) =>
         {
             x += direction;
-            if (x < 0 || x >= BOARD_WIDTH || tiles[x, y].GetTileType() == TileType.Locked)
+            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
             {
                 canMove = false;
                 return;
             }
-        });
+        }, structure, position);
 
         return canMove;
     }
 
-    private bool CanFall(int distance)
+    public bool CanMove(Vector2Int[] structure, Vector2Int position, Vector2Int dir)
+    {
+        bool canMove = true;
+        ForEveryTileInStructure((x, y) =>
+        {
+            x += dir.x;
+            y += dir.y;
+            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
+            {
+                canMove = false;
+                return;
+            }
+        }, structure, position);
+
+        return canMove;
+    }
+
+    public bool CanCurrentMove(Vector2Int dir)
+    {
+        return CanMove(currentPieceStructure, currentPiecePosition, dir);
+    }
+
+    public bool CanCurrentShift(int direction)
+    {
+        return CanShift(currentPieceStructure, currentPiecePosition, direction);
+    }
+
+    public bool CanFall(Vector2Int[] structure, Vector2Int position, int distance)
     {
         bool canFall = true;
-
-        ForEveryCurrentTile((x, y) =>
+        ForEveryTileInStructure((x, y) =>
         {
             y -= distance;
             if (y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
@@ -346,15 +372,20 @@ public class BoardController : MonoBehaviour
                 canFall = false;
                 return;
             }
-        });
+        }, structure, position);
 
         return canFall;
+    }
+
+    private bool CanCurrentFall(int distance)
+    {
+        return CanFall(currentPieceStructure, currentPiecePosition, distance);
     }
 
     private void MaxMoveCurrentPiece(int direction)
     {
         int distance = 1;
-        while (CanMove(direction * distance))
+        while (CanCurrentShift(direction * distance))
         {
             distance++;
         }
@@ -367,7 +398,7 @@ public class BoardController : MonoBehaviour
     private void MaxFallCurrentPiece()
     {
         int distance = 1;
-        while (CanFall(distance))
+        while (CanCurrentFall(distance))
         {
             distance++;
         }
@@ -399,7 +430,7 @@ public class BoardController : MonoBehaviour
     private void UpdateGhost()
     {
         int distance = 1;
-        while (CanFall(distance))
+        while (CanCurrentFall(distance))
         {
             distance++;
         }
