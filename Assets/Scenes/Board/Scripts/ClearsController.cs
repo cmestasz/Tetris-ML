@@ -11,11 +11,18 @@ public class ClearsController
     private int combo = 0;
     private int b2b = 0;
     private readonly Vector2Int[] dirs = new Vector2Int[] {
-        new Vector2Int(1, 0),
-        new Vector2Int(-1, 0),
-        new Vector2Int(0, 1),
-        new Vector2Int(0, -1)
+        new(1, 0),
+        new(-1, 0),
+        new(0, 1),
+        new(0, -1)
     };
+    private readonly Vector2Int[] cornersT = new Vector2Int[] {
+        new(0, 2),
+        new(2, 2),
+        new(2, 0),
+        new(0, 0)
+    };
+
 
     public ClearsController(BoardController boardController)
     {
@@ -46,12 +53,10 @@ public class ClearsController
             }
         }
 
-        bool allSpin = false;
-        bool tSpin = false;
+        int tSpin = CheckForTSpin();
+        bool allSpin = CheckForAllSpin() || tSpin == 0;
         if (toClear.Count > 0)
         {
-            allSpin = CheckForAllSpin() || CheckForTSpinMini();
-            tSpin = CheckForTSpin();
             ClearLines(toClear);
         }
 
@@ -76,16 +81,31 @@ public class ClearsController
             b2b = 0;
         }
 
-        boardController.infoController.UpdateClears(toClear.Count, "", b2b, combo);
+        string clearMod = "";
+        if (tSpin == 1)
+        {
+            clearMod = "T Spin";
+        }
+        else if (tSpin == 0)
+        {
+            clearMod = "Mini T Spin";
+        }
+        else if (allSpin)
+        {
+            clearMod = boardController.currentPiece + " Spin";
+        }
+
+        boardController.infoController.UpdateClears(toClear.Count, clearMod, b2b, combo);
     }
 
-    private void ScoreClears(int b2b, int combo, List<int> toClear, bool allSpin, bool tSpin)
+    private void ScoreClears(int b2b, int combo, List<int> toClear, bool allSpin, int tSpin)
     {
-        Debug.Log("Clears: " + toClear.Count);
-        Debug.Log("B2B: " + b2b);
-        Debug.Log("Combo: " + combo);
-        Debug.Log("All Spin: " + allSpin);
-        Debug.Log("T Spin: " + tSpin);
+        string debugText = "Clears: " + toClear.Count + "\n";
+        debugText += "B2B: " + b2b + "\n";
+        debugText += "Combo: " + combo + "\n";
+        debugText += "All Spin: " + allSpin + "\n";
+        debugText += "T Spin: " + tSpin + "\n";
+        Debug.Log(debugText);
     }
 
     private void ClearLines(List<int> toClear)
@@ -110,12 +130,12 @@ public class ClearsController
 
     private bool CheckForAllSpin()
     {
-        if (boardController.currentPiece == Piece.T)
+        if (!boardController.lastMoveWasRotate || boardController.currentPiece == Piece.T)
             return false;
         bool allSpin = true;
         foreach (Vector2Int dir in dirs)
         {
-            if (!boardController.CanCurrentMove(dir))
+            if (boardController.CanCurrentMove(dir))
             {
                 allSpin = false;
                 break;
@@ -124,14 +144,35 @@ public class ClearsController
         return allSpin;
     }
 
-    private bool CheckForTSpin()
+    // 0: mini, 1: regular
+    private int CheckForTSpin()
     {
-        return false;
-    }
+        if (!boardController.lastMoveWasRotate || boardController.currentPiece != Piece.T)
+            return -1;
 
-    private bool CheckForTSpinMini()
-    {
-        return false;
+        int idx1 = boardController.currentPieceRotation;
+        int idx2 = (idx1 + 1) % 4;
+
+        Vector2Int corner1 = cornersT[idx1];
+        Vector2Int corner2 = cornersT[idx2];
+        Debug.Log(corner1 + " " + corner2);
+
+        Vector2Int pos1 = boardController.currentPiecePosition + corner1;
+        Vector2Int pos2 = boardController.currentPiecePosition + corner2;
+
+        Tile tile1 = boardController.IsTileInValidRange(pos1.x, pos1.y) ? boardController.tiles[pos1.x, pos1.y] : null;
+        Tile tile2 = boardController.IsTileInValidRange(pos2.x, pos2.y) ? boardController.tiles[pos2.x, pos2.y] : null;
+
+        int count = -1;
+        if (tile1 != null && tile1.GetTileType() == TileType.Locked)
+        {
+            count++;
+        }
+        if (tile2 != null && tile2.GetTileType() == TileType.Locked)
+        {
+            count++;
+        }
+        return count;
     }
 
     private void CheckForPC()

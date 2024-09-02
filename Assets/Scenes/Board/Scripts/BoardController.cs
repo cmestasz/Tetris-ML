@@ -18,7 +18,7 @@ public class BoardController : MonoBehaviour
     public Vector2Int currentPiecePosition;
     public Vector2Int[] currentPieceStructure;
     private Vector2Int[][] currentPieceOffsets;
-    private int currentPieceRotation;
+    public int currentPieceRotation;
     public int currentPieceSize;
     public Piece currentPiece;
     private TileData currentData;
@@ -32,6 +32,7 @@ public class BoardController : MonoBehaviour
     private bool holdUsed = false;
     private bool canHold = true;
     private bool playing = false;
+    public bool lastMoveWasRotate = false;
     private Piece heldPiece = Piece.None;
 
     // Start is called before the first frame update
@@ -252,6 +253,8 @@ public class BoardController : MonoBehaviour
             ClearCurrentPiece();
             currentPiecePosition.y--;
             timeBuffer = 0;
+            lastMoveWasRotate = false;
+            Debug.Log("Falling");
             DrawCurrentPiece();
             return true;
         }
@@ -264,6 +267,8 @@ public class BoardController : MonoBehaviour
         {
             ClearCurrentPiece();
             currentPiecePosition.x += direction;
+            lastMoveWasRotate = false;
+            Debug.Log("Moving " + direction);
             DrawCurrentPiece();
         }
     }
@@ -275,6 +280,8 @@ public class BoardController : MonoBehaviour
         if (KickCurrentPiece(newStructure, times))
         {
             currentPieceStructure = newStructure;
+            Debug.Log("Rotating " + times);
+            lastMoveWasRotate = true;
         }
         DrawCurrentPiece();
     }
@@ -308,7 +315,7 @@ public class BoardController : MonoBehaviour
         {
             x += kick.x;
             y += kick.y;
-            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
+            if (!IsTileInValidRange(x, y) || tiles[x, y].GetTileType() == TileType.Locked)
             {
                 canKick = false;
                 return;
@@ -324,7 +331,7 @@ public class BoardController : MonoBehaviour
         ForEveryTileInStructure((x, y) =>
         {
             x += direction;
-            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
+            if (!IsTileInValidRange(x, y) || tiles[x, y].GetTileType() == TileType.Locked)
             {
                 canMove = false;
                 return;
@@ -341,7 +348,7 @@ public class BoardController : MonoBehaviour
         {
             x += dir.x;
             y += dir.y;
-            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT + BOARD_HEIGHT_BUFFER || tiles[x, y].GetTileType() == TileType.Locked)
+            if (!IsTileInValidRange(x, y) || tiles[x, y].GetTileType() == TileType.Locked)
             {
                 canMove = false;
                 return;
@@ -377,6 +384,11 @@ public class BoardController : MonoBehaviour
         return canFall;
     }
 
+    public bool IsTileInValidRange(int x, int y)
+    {
+        return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT + BOARD_HEIGHT_BUFFER;
+    }
+
     private bool CanCurrentFall(int distance)
     {
         return CanFall(currentPieceStructure, currentPiecePosition, distance);
@@ -403,6 +415,9 @@ public class BoardController : MonoBehaviour
             distance++;
         }
 
+        if (distance > 1)
+            lastMoveWasRotate = false;
+
         ClearCurrentPiece();
         currentPiecePosition.y -= distance - 1;
         DrawCurrentPiece();
@@ -425,6 +440,8 @@ public class BoardController : MonoBehaviour
         activePiece = false;
 
         clearsController.CheckForClears();
+        lastMoveWasRotate = false;
+        Debug.Log("Locking");
     }
 
     private void UpdateGhost()
@@ -545,6 +562,7 @@ public class BoardController : MonoBehaviour
         }
         if (Input.GetKey(KeyCode.DownArrow))
         {
+            Debug.Log("Soft Dropping");
             MaxFallCurrentPiece();
             timeBuffer = 0;
         }
