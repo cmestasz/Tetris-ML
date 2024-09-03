@@ -5,22 +5,16 @@ using UnityEngine;
 public class Tile : MonoBehaviour
 {
     public enum TileType { Active, Ghost, Locked, Empty }
-    private TileType type = TileType.Empty;
+    private TileType tileType = TileType.Empty;
     [SerializeField] private TileDataScriptableObject tileTypes;
-    public TileData tileData;
+    private TileData tileData;
     private SpriteRenderer spriteRenderer;
     private Color ghostColor = new(1, 1, 1, 0.5f);
 
-    // Start is called before the first frame update
-    void Start()
+    public void Init()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        tileData = tileTypes.Empty;
     }
 
     public void SetTileData(TileData data)
@@ -29,9 +23,14 @@ public class Tile : MonoBehaviour
         tileData = data;
     }
 
+    public TileData GetTileData()
+    {
+        return tileData;
+    }
+
     public void SetTileType(TileType type)
     {
-        this.type = type;
+        this.tileType = type;
         switch (type)
         {
             case TileType.Active:
@@ -47,6 +46,6 @@ public class Tile : MonoBehaviour
 
     public TileType GetTileType()
     {
-        return type;
+        return tileType;
     }
 }

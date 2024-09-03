@@ -12,19 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 033a37a8cbecfee47bebf1d4ec2fd8b2, type: 3}
   m_Name: TileData
   m_EditorClassIdentifier: 
-  S:
-    sprite: {fileID: -1182827721247122346, guid: 357dd09bf773c8e4eaa20a054d2bb2fb, type: 3}
-  Z:
-    sprite: {fileID: 4969131362173423726, guid: 3ce61d635de830b44b4bca30d10a4c71, type: 3}
-  L:
-    sprite: {fileID: 3685002520340290964, guid: 34e6831cb87b6ff4db615e2372ab74d2, type: 3}
-  J:
-    sprite: {fileID: -581286770295223724, guid: 86c210248e978a549a22185c3402fd5d, type: 3}
   I:
     sprite: {fileID: -5465646382484160345, guid: d7b1257b7f8933a4ca6b36dc13fa52b1, type: 3}
+  J:
+    sprite: {fileID: -581286770295223724, guid: 86c210248e978a549a22185c3402fd5d, type: 3}
+  L:
+    sprite: {fileID: 3685002520340290964, guid: 34e6831cb87b6ff4db615e2372ab74d2, type: 3}
   O:
     sprite: {fileID: -1937887712669590171, guid: 4576e9a2046db144c91b74704a61ab37, type: 3}
+  S:
+    sprite: {fileID: -1182827721247122346, guid: 357dd09bf773c8e4eaa20a054d2bb2fb, type: 3}
   T:
     sprite: {fileID: -1785357414251982577, guid: b9e9a4adcadbb5d48bd6f3297a536d30, type: 3}
+  Z:
+    sprite: {fileID: 4969131362173423726, guid: 3ce61d635de830b44b4bca30d10a4c71, type: 3}
+  Garbage:
+    sprite: {fileID: 9202060142997513903, guid: 40d65d0ef23eeae46bd0d1bee45f1b18, type: 3}
   Empty:
     sprite: {fileID: -2224474878120320963, guid: 8ce7553c435ee7a48ace15096e4b03c0, type: 3}

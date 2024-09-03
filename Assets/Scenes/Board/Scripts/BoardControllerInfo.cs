@@ -1,13 +1,10 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using static BoardConstants;
 using static Pieces;
 
-// anything that is purely visual and can be removed for training
-public class InfoController : MonoBehaviour
+public partial class BoardController : MonoBehaviour
 {
     [SerializeField] private GameObject I, J, L, O, S, T, Z;
     [SerializeField] private TMP_Text clearLines, clearModifier, clearB2B, clearCombo;
@@ -17,9 +14,13 @@ public class InfoController : MonoBehaviour
     private const float SPACING = 3f;
     private readonly Queue<GameObject> previewPieces = new();
     private Vector3 up = new(0, SPACING * BOARD_SCALE, 0);
+    private readonly string[] clears = { "Single", "Double", "Triple", "Quad" };
 
     public void InitInfo(Piece[] pieces)
     {
+        if (cleanMode)
+            return;
+
         holdParent = transform.Find("Hold");
         queueParent = transform.Find("Queue");
         piecePrefabs = new()
@@ -41,6 +42,9 @@ public class InfoController : MonoBehaviour
 
     public void RestartInfo(Piece[] pieces)
     {
+        if (cleanMode)
+            return;
+
         foreach (GameObject previewPiece in previewPieces)
         {
             Destroy(previewPiece);
@@ -64,6 +68,9 @@ public class InfoController : MonoBehaviour
 
     public void UpdatePreview(Piece piece)
     {
+        if (cleanMode)
+            return;
+
         Destroy(previewPieces.Dequeue());
         foreach (GameObject previewPiece in previewPieces)
         {
@@ -77,27 +84,35 @@ public class InfoController : MonoBehaviour
 
     public void FirstHoldPiece(Piece piece, Piece nextPiece)
     {
+        if (cleanMode)
+            return;
+
         UpdatePreview(nextPiece);
         Instantiate(piecePrefabs[piece], holdParent);
     }
 
     public void HoldPiece(Piece piece)
     {
+        if (cleanMode)
+            return;
+
         Destroy(holdParent.GetChild(0).gameObject);
         Instantiate(piecePrefabs[piece], holdParent);
     }
 
-    private string[] clears = { "Single", "Double", "Triple", "Quad" };
 
     public void UpdateClears(int lines, string modifier, int b2b, int combo)
     {
+        if (cleanMode)
+            return;
+
         SetClearLinesText(lines);
         SetClearModifierText(modifier);
         SetClearB2BText(b2b);
         SetClearComboText(combo);
     }
 
-    public void SetClearLinesText(int lines)
+    private void SetClearLinesText(int lines)
     {
         if (lines == 0)
         {
@@ -108,17 +123,17 @@ public class InfoController : MonoBehaviour
         clearLines.text = clears[lines - 1];
     }
 
-    public void SetClearModifierText(string modifier)
+    private void SetClearModifierText(string modifier)
     {
         clearModifier.text = modifier;
     }
 
-    public void SetClearB2BText(int b2b)
+    private void SetClearB2BText(int b2b)
     {
         clearB2B.text = b2b >= 3 ? $"B2B x {b2b}" : "";
     }
 
-    public void SetClearComboText(int combo)
+    private void SetClearComboText(int combo)
     {
         clearCombo.text = combo >= 2 ? $"Combo x {combo}" : "";
     }

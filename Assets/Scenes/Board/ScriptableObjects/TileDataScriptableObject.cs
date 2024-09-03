@@ -12,6 +12,7 @@ public class TileDataScriptableObject : ScriptableObject
     public TileData S;
     public TileData T;
     public TileData Z;
+    public TileData Garbage;
     public TileData Empty;
 
     public TileData GetTileType(Piece piece)
@@ -25,6 +26,7 @@ public class TileDataScriptableObject : ScriptableObject
             Piece.S => S,
             Piece.T => T,
             Piece.Z => Z,
+            Piece.Garbage => Garbage,
             _ => Empty,
         };
     }
