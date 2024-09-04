@@ -20,7 +20,7 @@ public partial class BoardController : MonoBehaviour
 
         CheckForClears();
         lastMoveWasRotate = false;
-        Debug.Log("Locking");
+        // Debug.Log("Locking");
     }
     //p
 
@@ -57,7 +57,7 @@ public partial class BoardController : MonoBehaviour
             currentPiecePosition.y--;
             timeBuffer = 0;
             lastMoveWasRotate = false;
-            Debug.Log("Falling");
+            // Debug.Log("Falling");
             DrawCurrentPiece();
             return true;
         }
@@ -71,7 +71,7 @@ public partial class BoardController : MonoBehaviour
             ClearCurrentPiece();
             currentPiecePosition.x += direction;
             lastMoveWasRotate = false;
-            Debug.Log("Moving " + direction);
+            // Debug.Log("Moving " + direction);
             DrawCurrentPiece();
         }
     }
@@ -83,7 +83,7 @@ public partial class BoardController : MonoBehaviour
         if (KickCurrentPiece(newStructure, times))
         {
             currentPieceStructure = newStructure;
-            Debug.Log("Rotating " + times);
+            // Debug.Log("Rotating " + times);
             lastMoveWasRotate = true;
         }
         DrawCurrentPiece();

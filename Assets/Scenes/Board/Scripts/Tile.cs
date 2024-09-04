@@ -5,7 +5,7 @@ using UnityEngine;
 public class Tile : MonoBehaviour
 {
     public enum TileType { Active, Ghost, Locked, Empty }
-    private TileType tileType = TileType.Empty;
+    public TileType tileType = TileType.Empty;
     [SerializeField] private TileDataScriptableObject tileTypes;
     private TileData tileData;
     private SpriteRenderer spriteRenderer;
@@ -28,10 +28,10 @@ public class Tile : MonoBehaviour
         return tileData;
     }
 
-    public void SetTileType(TileType type)
+    public void SetTileType(TileType tileType)
     {
-        this.tileType = type;
-        switch (type)
+        this.tileType = tileType;
+        switch (tileType)
         {
             case TileType.Active:
             case TileType.Empty:

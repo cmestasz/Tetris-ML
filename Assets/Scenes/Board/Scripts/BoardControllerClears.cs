@@ -53,12 +53,13 @@ public partial class BoardController : MonoBehaviour
             ClearLines(toClear);
         }
 
-        ScoreClears(b2b, combo, toClear, allSpin, tSpin);
+        ScoreClears(b2b, combo, toClear.Count, allSpin, tSpin);
 
 
         if (toClear.Count == 0)
         {
             combo = 0;
+            SpawnGarbage();
         }
         else
         {
@@ -91,9 +92,14 @@ public partial class BoardController : MonoBehaviour
         UpdateClears(toClear.Count, clearMod, b2b, combo);
     }
 
-    private void ScoreClears(int b2b, int combo, List<int> toClear, bool allSpin, int tSpin)
+    private void ScoreClears(int b2b, int combo, int toClear, bool allSpin, int tSpin)
     {
-        string debugText = "Clears: " + toClear.Count + "\n";
+        if (toClear == 0)
+        {
+            return;
+        }
+        
+        string debugText = "Clears: " + toClear + "\n";
         debugText += "B2B: " + b2b + "\n";
         debugText += "Combo: " + combo + "\n";
         debugText += "All Spin: " + allSpin + "\n";
@@ -148,7 +154,7 @@ public partial class BoardController : MonoBehaviour
 
         Vector2Int corner1 = cornersT[idx1];
         Vector2Int corner2 = cornersT[idx2];
-        Debug.Log(corner1 + " " + corner2);
+        // Debug.Log(corner1 + " " + corner2);
 
         Vector2Int pos1 = currentPiecePosition + corner1;
         Vector2Int pos2 = currentPiecePosition + corner2;

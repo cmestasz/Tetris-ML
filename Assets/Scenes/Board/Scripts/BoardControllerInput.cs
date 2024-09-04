@@ -48,7 +48,7 @@ public partial class BoardController : MonoBehaviour
         }
         if (Input.GetKey(KeyCode.DownArrow))
         {
-            Debug.Log("Soft Dropping");
+            // Debug.Log("Soft Dropping");
             MaxFallCurrentPiece();
             timeBuffer = 0;
         }
