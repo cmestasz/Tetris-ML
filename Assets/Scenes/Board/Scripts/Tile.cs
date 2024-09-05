@@ -9,7 +9,7 @@ public class Tile : MonoBehaviour
     [SerializeField] private TileDataScriptableObject tileTypes;
     private TileData tileData;
     private SpriteRenderer spriteRenderer;
-    private Color ghostColor = new(1, 1, 1, 0.5f);
+    private Color ghostColor = new(1, 1, 1, 0.25f);
 
     public void Init()
     {

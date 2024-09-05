@@ -2,9 +2,12 @@ using UnityEngine;
 using static BoardConstants;
 using static Pieces;
 using static Tile;
+using static Utils;
 
 public partial class BoardController : MonoBehaviour
 {
+    public enum RotateType { CW = 1, CCW = 3, _180 = 2 }
+
     private void LockCurrentPiece()
     {
         MaxFallCurrentPiece();
@@ -76,11 +79,11 @@ public partial class BoardController : MonoBehaviour
         }
     }
 
-    private void RotateCurrentPiece(int times)
+    private void RotateCurrentPiece(RotateType type)
     {
-        Vector2Int[] newStructure = PieceStructures.RotateStructure(currentPieceStructure, currentPieceSize, times);
+        Vector2Int[] newStructure = PieceStructures.RotateStructure(currentPieceStructure, currentPieceSize, (int)type);
         ClearCurrentPiece();
-        if (KickCurrentPiece(newStructure, times))
+        if (KickCurrentPiece(newStructure, type))
         {
             currentPieceStructure = newStructure;
             // Debug.Log("Rotating " + times);
@@ -89,23 +92,48 @@ public partial class BoardController : MonoBehaviour
         DrawCurrentPiece();
     }
 
-    private bool KickCurrentPiece(Vector2Int[] structure, int times)
+    private Vector2Int[] GetKickData(int rotation, RotateType type)
     {
-        int newRotation = (currentPieceRotation + times) % 4;
+        int dir = type == RotateType.CCW ? (rotation == 3 ? 0 : rotation + 1) : rotation;
+        // int dir = rotation;
+
+        return type switch
+        {
+            RotateType.CW => NegGet(currentPieceKicks, dir),
+            RotateType.CCW => InverseKickData(currentPieceKicks[dir]),
+            RotateType._180 => NegGet(currentPieceKicks180, dir),
+            _ => null,
+        };
+    }
+
+    private Vector2Int[] InverseKickData(Vector2Int[] kicks)
+    {
+        Vector2Int[] inverse = new Vector2Int[kicks.Length];
+        for (int i = 0; i < kicks.Length; i++)
+        {
+            inverse[i] = kicks[i] * -1;
+        }
+        return inverse;
+    }
+
+    private bool KickCurrentPiece(Vector2Int[] structure, RotateType type)
+    {
+        int newRotation = (currentPieceRotation + (int)type) % 4;
+        // Debug.Log(newRotation);
+        Vector2Int[] kickData = GetKickData(newRotation, type);
         int kickIdx = -1;
-        Vector2Int currentKick;
         bool wasKick = false;
         do
         {
             kickIdx++;
-            currentKick = currentPieceOffsets[currentPieceRotation][kickIdx] - currentPieceOffsets[newRotation][kickIdx];
+            Vector2Int currentKick = kickData[kickIdx];
             if (CanKick(structure, currentKick))
             {
                 currentPiecePosition += currentKick;
                 wasKick = true;
                 break;
             }
-        } while (kickIdx < currentPieceOffsets[newRotation].Length - 1);
+        } while (kickIdx < kickData.Length - 1);
 
         currentPieceRotation = newRotation;
         return wasKick;

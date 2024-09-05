@@ -5,42 +5,51 @@ using static Pieces;
 
 public static class PieceStructures
 {
-    private static readonly Vector2Int[][] offsetJLSTZ = new Vector2Int[][]
+    private static readonly Vector2Int[][] kicksNotI = new Vector2Int[][]
     {
-        new Vector2Int[] { new(0, 0), new(0, 0), new(0, 0), new(0, 0), new(0, 0) },
+        new Vector2Int[] { new(0, 0), new(-1, 0), new(-1, -1), new(0, 2), new(-1, 2) },
+        new Vector2Int[] { new(0, 0), new(-1, 0), new(-1, 1), new(0, -2), new(-1, -2) },
         new Vector2Int[] { new(0, 0), new(1, 0), new(1, -1), new(0, 2), new(1, 2) },
-        new Vector2Int[] { new(0, 0), new(0, 0), new(0, 0), new(0, 0), new(0, 0) },
-        new Vector2Int[] { new(0, 0), new(-1, 0), new(-1, -1), new(0, 2), new(-1, 2) }
+        new Vector2Int[] { new(0, 0), new(1, 0), new(1, 1), new(0, -2), new(1, -2) }
     };
 
-    private static readonly Vector2Int[][] offsetI = new Vector2Int[][]
+    private static readonly Vector2Int[][] kicksI = new Vector2Int[][]
     {
-        new Vector2Int[] { new(0, 0), new(-1, 0), new(2, 0), new(-1, 0), new(2, 0) },
-        new Vector2Int[] { new(-1, 0), new(0, 0), new(0, 0), new(0, 1), new(0, -2) },
-        new Vector2Int[] { new(-1, 1), new(1, 1), new(-2, 1), new(1, 0), new(-2, 0) },
-        new Vector2Int[] { new(0, 1), new(0, 1), new(0, 1), new(0, -1), new(0, 2) }
+        new Vector2Int[] { new(0, 0), new(1, 0), new(-2, 0), new(1, -2), new(-2, 1) },
+        new Vector2Int[] { new(0, 0), new(1, 0), new(-2, 0), new(1, 2), new(-2, -1) },
+        new Vector2Int[] { new(0, 0), new(-1, 0), new(2, 0), new(-1, 2), new(2, -1) },
+        new Vector2Int[] { new(0, 0), new(-1, 0), new(2, 0), new(-1, -2), new(2, 1) }
     };
 
-    private static readonly Vector2Int[][] offsetO = new Vector2Int[][]
+    private static readonly Vector2Int[][] kicksNotI180 = new Vector2Int[][]
     {
-        new Vector2Int[] { new(0, 0) },
-        new Vector2Int[] { new(0, -1) },
-        new Vector2Int[] { new(-1, -1) },
-        new Vector2Int[] { new(-1, 0) }
+        new Vector2Int[] { new(0, 0), new(0, -1), new(-1, -1), new(1, -1), new(-1, 0), new(1, 0) },
+        new Vector2Int[] { new(0, 0), new(-1, 0), new(-1, 2), new(-1, 1), new(0, 2), new(0, 1) },
+        new Vector2Int[] { new(0, 0), new(0, 1), new(1, 1), new(-1, 1), new(1, 0), new(-1, 0) },
+        new Vector2Int[] { new(0, 0), new(1, 0), new(1, 2), new(1, 1), new(0, 2), new(0, 1) }
+    };
+
+    private static readonly Vector2Int[][] kicksI180 = new Vector2Int[][]
+    {
+        new Vector2Int[] { new(0, 0), new(0, -1) },
+        new Vector2Int[] { new(0, 0), new(-1, 0) },
+        new Vector2Int[] { new(0, 0), new(0, 1) },
+        new Vector2Int[] { new(0, 0), new(1, 0) }
     };
 
     private static readonly PieceStructure I = new()
     {
-        start = new Vector2Int(2, 19),
+        start = new Vector2Int(3, 19),
         structure = new Vector2Int[]
         {
+            new(0, 2),
             new(1, 2),
             new(2, 2),
-            new(3, 2),
-            new(4, 2)
+            new(3, 2)
         },
-        offsets = offsetI,
-        size = 5
+        kicks = kicksI,
+        kicks180 = kicksI180,
+        size = 4
     };
 
     private static readonly PieceStructure J = new()
@@ -53,7 +62,8 @@ public static class PieceStructures
             new(1, 1),
             new(2, 1)
         },
-        offsets = offsetJLSTZ,
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
         size = 3
     };
 
@@ -67,22 +77,24 @@ public static class PieceStructures
             new(2, 1),
             new(2, 2)
         },
-        offsets = offsetJLSTZ,
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
         size = 3
     };
 
     private static readonly PieceStructure O = new()
     {
-        start = new Vector2Int(3, 20),
+        start = new Vector2Int(4, 20),
         structure = new Vector2Int[]
         {
-            new(1, 2),
-            new(2, 2),
-            new(1, 1),
-            new(2, 1)
+            new(0, 0),
+            new(1, 0),
+            new(0, 1),
+            new(1, 1)
         },
-        offsets = offsetO,
-        size = 3
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
+        size = 2
     };
 
     private static readonly PieceStructure S = new()
@@ -95,7 +107,8 @@ public static class PieceStructures
             new(1, 2),
             new(2, 2)
         },
-        offsets = offsetJLSTZ,
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
         size = 3
     };
 
@@ -109,7 +122,8 @@ public static class PieceStructures
             new(1, 1),
             new(2, 1)
         },
-        offsets = offsetJLSTZ,
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
         size = 3
     };
 
@@ -123,7 +137,8 @@ public static class PieceStructures
             new(1, 1),
             new(2, 1)
         },
-        offsets = offsetJLSTZ,
+        kicks = kicksNotI,
+        kicks180 = kicksNotI180,
         size = 3
     };
 
@@ -148,15 +163,18 @@ public static class PieceStructures
         return newStructure;
     }
 
+    private static readonly Vector2 half = new(0.5f, 0.5f);
+    private const int NEG90SIN = -1;
     private static void RotateStructure(Vector2Int[] structure, int size)
     {
-        Vector2Int center = new(size / 2, size / 2);
+        float c = size / 2f;
+        Vector2 center = new(c, c);
         for (int i = 0; i < structure.Length; i++)
         {
-            Vector2Int diff = structure[i] - center;
-            int relX = Mathf.RoundToInt(diff.x * Mathf.Cos(-Mathf.PI / 2) - diff.y * Mathf.Sin(-Mathf.PI / 2));
-            int relY = Mathf.RoundToInt(diff.x * Mathf.Sin(-Mathf.PI / 2) + diff.y * Mathf.Cos(-Mathf.PI / 2));
-            structure[i] = new Vector2Int(center.x + relX, center.y + relY);
+            Vector2 diff = structure[i] + half - center;
+            float relX = -diff.y * NEG90SIN;
+            float relY = diff.x * NEG90SIN;
+            structure[i] = new Vector2Int(Mathf.RoundToInt(relX - half.x + center.x), Mathf.RoundToInt(relY - half.y + center.y));
         }
     }
 }
@@ -165,6 +183,7 @@ public class PieceStructure
 {
     public Vector2Int start;
     public Vector2Int[] structure;
-    public Vector2Int[][] offsets;
+    public Vector2Int[][] kicks;
+    public Vector2Int[][] kicks180;
     public int size;
 }

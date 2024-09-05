@@ -14,7 +14,8 @@ public partial class BoardController : MonoBehaviour
     public readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     public Vector2Int currentPiecePosition;
     public Vector2Int[] currentPieceStructure;
-    private Vector2Int[][] currentPieceOffsets;
+    private Vector2Int[][] currentPieceKicks;
+    private Vector2Int[][] currentPieceKicks180;
     public int currentPieceRotation;
     public int currentPieceSize;
     public Piece currentPiece;
@@ -61,7 +62,7 @@ public partial class BoardController : MonoBehaviour
         InitInfo(initialPreviews);
 
         StartCoroutine(GameLoop());
-        StartCoroutine(GarbageTest());
+        // StartCoroutine(GarbageTest());
     }
 
     // Update is called once per frame
@@ -140,7 +141,8 @@ public partial class BoardController : MonoBehaviour
         PieceStructure pieceStructure = PieceStructures.pieceStructures[piece];
         currentPiecePosition = new(pieceStructure.start.x, pieceStructure.start.y);
         currentPieceStructure = pieceStructure.structure.Clone() as Vector2Int[];
-        currentPieceOffsets = pieceStructure.offsets;
+        currentPieceKicks = pieceStructure.kicks;
+        currentPieceKicks180 = pieceStructure.kicks180;
         currentPieceRotation = 0;
         currentData = tileDataSO.GetTileType(piece);
         currentPiece = piece;
