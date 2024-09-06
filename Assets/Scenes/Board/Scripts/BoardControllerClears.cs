@@ -53,9 +53,6 @@ public partial class BoardController : MonoBehaviour
             ClearLines(toClear);
         }
 
-        ScoreClears(b2b, combo, toClear.Count, allSpin, tSpin);
-
-
         if (toClear.Count == 0)
         {
             combo = 0;
@@ -75,6 +72,8 @@ public partial class BoardController : MonoBehaviour
             b2b = 0;
         }
 
+        ScoreClears(b2b, combo, toClear.Count, allSpin, tSpin);
+
         string clearMod = "";
         if (tSpin == 1)
         {
@@ -90,21 +89,6 @@ public partial class BoardController : MonoBehaviour
         }
 
         UpdateClears(toClear.Count, clearMod, b2b, combo);
-    }
-
-    private void ScoreClears(int b2b, int combo, int toClear, bool allSpin, int tSpin)
-    {
-        if (toClear == 0)
-        {
-            return;
-        }
-        
-        string debugText = "Clears: " + toClear + "\n";
-        debugText += "B2B: " + b2b + "\n";
-        debugText += "Combo: " + combo + "\n";
-        debugText += "All Spin: " + allSpin + "\n";
-        debugText += "T Spin: " + tSpin + "\n";
-        Debug.Log(debugText);
     }
 
     private void ClearLines(List<int> toClear)

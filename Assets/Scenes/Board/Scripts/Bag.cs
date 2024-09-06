@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using static Pieces;
 
 public class Bag
@@ -8,10 +7,11 @@ public class Bag
     private readonly int[] order = new int[] { 0, 1, 2, 3, 4, 5, 6 };
     private readonly Piece[] bag = new Piece[] { Piece.S, Piece.Z, Piece.L, Piece.J, Piece.I, Piece.O, Piece.T };
     private readonly PeekableQueue<Piece> queue = new(7);
-    private readonly Random random = new();
+    private Random random;
 
-    public Bag()
+    public Bag(int seed)
     {
+        random = new Random(seed);
         for (int i = 0; i < 7; i++)
         {
             GenerateNext();

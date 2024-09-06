@@ -6,6 +6,12 @@ public partial class BoardController : MonoBehaviour
     // TODO: input manager
     private void HandleInput()
     {
+        if (!allowInput)
+        {
+            return;
+        }
+
+
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             MoveCurrentPiece(-1);

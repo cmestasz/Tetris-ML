@@ -4,13 +4,14 @@ using UnityEngine;
 using static Pieces;
 using static Tile;
 using static BoardConstants;
+using System;
 
 public partial class BoardController : MonoBehaviour
 {
     public TileDataScriptableObject tileDataSO;
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private bool cleanMode;
-    private Bag bag = new();
+    private Bag bag;
     public readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     public Vector2Int currentPiecePosition;
     public Vector2Int[] currentPieceStructure;
@@ -22,6 +23,8 @@ public partial class BoardController : MonoBehaviour
     private Piece heldPiece = Piece.None;
     private TileData currentData;
     private int lowestY;
+    private int id;
+    private int targetId;
     private float timeBuffer = 0;
     private float extendedTimeBuffer = 0;
     private float autoShiftTimer = 0;
@@ -31,11 +34,15 @@ public partial class BoardController : MonoBehaviour
     private bool holdUsed = false;
     private bool canHold = true;
     private bool playing = false;
+    public bool allowInput = false;
     public bool lastMoveWasRotate = false;
 
-    // Start is called before the first frame update
-    void Start()
+    public void Init(int id, int bagSeed)
     {
+        this.id = id;
+        targetId = GameManager.Instance.GetTargetId(id);
+        bag = new Bag(bagSeed);
+
         tilePrefab.transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
         transform.Find("Background").transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
         Transform tilesParent = transform.Find("Tiles");
@@ -178,7 +185,7 @@ public partial class BoardController : MonoBehaviour
 
     private void RestartBoard()
     {
-        bag = new Bag();
+        bag = new Bag(0);
         heldPiece = Piece.None;
         activePiece = false;
         canHold = true;
