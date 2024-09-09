@@ -20,8 +20,7 @@ public partial class BoardController : MonoBehaviour
     };
 
     public int pendingGarbage = 0;
-
-    private void ScoreClears(int b2b, int combo, int clears, bool allSpin, int tSpin)
+    private void ScoreClears(int b2b, int combo, int clears, bool allSpin, int tSpin, int surge, bool pc)
     {
         if (clears == 0)
         {
@@ -62,6 +61,16 @@ public partial class BoardController : MonoBehaviour
         }
 
         int attack = attackArray[combo];
+        attack += surge;
+        if (b2b > 3)
+            attack += 1;
+        if (pc)
+            attack += 5;
+
+        int toBlock = Mathf.Min(attack, pendingGarbage);
+        pendingGarbage -= toBlock;
+        attack -= toBlock;
+
         GameManager.Instance.SendAttack(attack, targetId);
 
         string debugText = "Clears: " + clears + "\n";
@@ -87,6 +96,12 @@ public partial class BoardController : MonoBehaviour
     {
         yield return new WaitForSeconds(PASSTHROUGH_TIME);
         pendingGarbage += attack;
+        UpdatePendingLine();
+    }
+
+    private void UpdatePendingLine()
+    {
+        pendingLine.SetPositions(new Vector3[] { new(0, 0, 0), new(0, pendingGarbage * BOARD_SCALE, 0) });
     }
 
     private void SpawnGarbage()
@@ -130,5 +145,8 @@ public partial class BoardController : MonoBehaviour
                 }
             }
         }
+
+        UpdatePendingLine();
+
     }
 }

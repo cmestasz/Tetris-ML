@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
     }
 
     [SerializeField] private BoardController[] boards;
+    [SerializeField] private bool allowSelfTarget;
     private int totalBoards;
     private int bagSeed;
 
@@ -42,7 +43,7 @@ public class GameManager : MonoBehaviour
         List<int> possibleTargets = new List<int>();
         for (int i = 0; i < totalBoards; i++)
         {
-            if (i != id)
+            if (allowSelfTarget || i != id)
                 possibleTargets.Add(i);
         }
         return possibleTargets[Random.Range(0, possibleTargets.Count)];

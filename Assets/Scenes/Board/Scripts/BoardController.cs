@@ -11,6 +11,7 @@ public partial class BoardController : MonoBehaviour
     public TileDataScriptableObject tileDataSO;
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private bool cleanMode;
+    private LineRenderer pendingLine;
     private Bag bag;
     public readonly Tile[,] tiles = new Tile[BOARD_WIDTH, BOARD_HEIGHT + BOARD_HEIGHT_BUFFER];
     public Vector2Int currentPiecePosition;
@@ -43,8 +44,13 @@ public partial class BoardController : MonoBehaviour
         targetId = GameManager.Instance.GetTargetId(id);
         bag = new Bag(bagSeed);
 
+        pendingLine = transform.Find("Pending").GetComponent<LineRenderer>();
+        pendingLine.useWorldSpace = false;
+        
+        pendingLine.startWidth = pendingLine.endWidth = BOARD_SCALE * 0.2f;
         tilePrefab.transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
         transform.Find("Background").transform.localScale = new(BOARD_SCALE, BOARD_SCALE, 1);
+
         Transform tilesParent = transform.Find("Tiles");
 
         float offsetX = -BOARD_WIDTH * BOARD_SCALE / 2.0f + BOARD_SCALE / 2.0f;

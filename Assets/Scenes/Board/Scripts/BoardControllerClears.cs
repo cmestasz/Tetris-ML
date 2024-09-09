@@ -63,30 +63,27 @@ public partial class BoardController : MonoBehaviour
             combo++;
         }
 
-        if (toClear.Count == 4)
-        {
+        int surge = 0;
+        if (toClear.Count == 4 || tSpin != -1 || allSpin)
             b2b++;
-        }
         else if (toClear.Count > 0)
         {
+            if (b2b > 3)
+                surge = b2b;
             b2b = 0;
         }
 
-        ScoreClears(b2b, combo, toClear.Count, allSpin, tSpin);
+        bool pc = CheckForPC();
+
+        ScoreClears(b2b, combo, toClear.Count, allSpin, tSpin, surge, pc);
 
         string clearMod = "";
         if (tSpin == 1)
-        {
             clearMod = "T Spin";
-        }
         else if (tSpin == 0)
-        {
             clearMod = "Mini T Spin";
-        }
         else if (allSpin)
-        {
             clearMod = currentPiece + " Spin";
-        }
 
         UpdateClears(toClear.Count, clearMod, b2b, combo);
     }
@@ -158,7 +155,7 @@ public partial class BoardController : MonoBehaviour
         return count;
     }
 
-    private void CheckForPC()
+    private bool CheckForPC()
     {
         bool pc = true;
         for (int x = 0; x < BOARD_WIDTH; x++)
@@ -169,9 +166,6 @@ public partial class BoardController : MonoBehaviour
                 break;
             }
         }
-        if (pc)
-        {
-            Debug.Log("PC");
-        }
+        return pc;
     }
 }
